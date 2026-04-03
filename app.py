@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from immanuel import charts
 from geopy.geocoders import Nominatim
 import certifi
@@ -7,6 +8,7 @@ import datetime
 import os
 
 app = Flask(__name__)
+CORS(app)
 
 # ── Gate wheel ────────────────────────────────────────────────────────────────
 # 64 gates in zodiac order starting at 2° Aries; each gate = 5.625°
