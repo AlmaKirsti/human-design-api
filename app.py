@@ -6,6 +6,7 @@ import certifi
 import ssl
 import datetime
 import os
+import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -294,6 +295,45 @@ def chart():
         'defined_centers':    sorted(defined),
         'incarnation_cross':  get_incarnation_cross(cs_gate, cs_line, us_gate),
     })
+
+
+@app.route('/hd-type', methods=['POST'])
+def hd_type():
+    data = request.get_json(force=True)
+    birthdate = data.get('birthdate')
+    birthtime = data.get('birthtime')
+    location = data.get('location')
+
+    if not all([birthdate, birthtime, location]):
+        return jsonify({'error': 'birthdate, birthtime, and location are required'}), 400
+
+    try:
+        dt = datetime.datetime.strptime(birthdate, '%Y-%m-%d')
+        formatted_date = dt.strftime('%-d-%b-%Y')
+    except ValueError as e:
+        return jsonify({'error': f'Invalid birthdate format, expected YYYY-MM-DD: {e}'}), 400
+
+    payload = {
+        'date': formatted_date,
+        'time': birthtime,
+        'location': location,
+    }
+
+    headers = {
+        'Authorization': 'Bearer ask_45694a819bac1b7e4cda8fd389cf1479a194b1d273b29422091efd9baff05c7d',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        resp = requests.post(
+            'https://astrology-api.io/api/v1/human-design/type',
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+        return jsonify(resp.json()), resp.status_code
+    except requests.RequestException as e:
+        return jsonify({'error': f'Upstream request failed: {e}'}), 502
 
 
 if __name__ == '__main__':
