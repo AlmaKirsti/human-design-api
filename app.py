@@ -304,7 +304,7 @@ def hd_type():
     birthtime = data.get('birthtime')
     # Accept city + country_code (new) or location as city fallback (old)
     city = data.get('city') or data.get('location')
-    country_code = data.get('country_code', '')
+    country_code = (data.get('country_code') or 'NO').strip().upper()
 
     if not all([birthdate, birthtime, city]):
         return jsonify({'error': 'birthdate, birthtime, and city (or location) are required'}), 400
