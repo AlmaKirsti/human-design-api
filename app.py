@@ -309,7 +309,7 @@ def hd_type():
 
     try:
         dt = datetime.datetime.strptime(birthdate, '%Y-%m-%d')
-        formatted_date = dt.strftime('%-d-%b-%Y')
+        formatted_date = dt.strftime('%d-%b-%Y')  # e.g. 01-Dec-1999
     except ValueError as e:
         return jsonify({'error': f'Invalid birthdate format, expected YYYY-MM-DD: {e}'}), 400
 
@@ -331,8 +331,13 @@ def hd_type():
             headers=headers,
             timeout=30,
         )
-        return jsonify(resp.json()), resp.status_code
+        app.logger.info('astrology-api.io status=%s body=%r', resp.status_code, resp.text)
+        try:
+            return jsonify(resp.json()), resp.status_code
+        except ValueError:
+            return jsonify({'error': 'Upstream returned non-JSON response', 'status': resp.status_code, 'body': resp.text}), 502
     except requests.RequestException as e:
+        app.logger.error('astrology-api.io request failed: %s', e)
         return jsonify({'error': f'Upstream request failed: {e}'}), 502
 
 
