@@ -302,21 +302,44 @@ def hd_type():
     data = request.get_json(force=True)
     birthdate = data.get('birthdate')
     birthtime = data.get('birthtime')
-    location = data.get('location')
+    # Accept city + country_code (new) or location as city fallback (old)
+    city = data.get('city') or data.get('location')
+    country_code = data.get('country_code', '')
 
-    if not all([birthdate, birthtime, location]):
-        return jsonify({'error': 'birthdate, birthtime, and location are required'}), 400
+    if not all([birthdate, birthtime, city]):
+        return jsonify({'error': 'birthdate, birthtime, and city (or location) are required'}), 400
 
     try:
         dt = datetime.datetime.strptime(birthdate, '%Y-%m-%d')
-        formatted_date = dt.strftime('%d-%b-%Y')  # e.g. 01-Dec-1999
     except ValueError as e:
         return jsonify({'error': f'Invalid birthdate format, expected YYYY-MM-DD: {e}'}), 400
 
+    try:
+        time_parts = birthtime.split(':')
+        hour = int(time_parts[0])
+        minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+    except (ValueError, IndexError) as e:
+        return jsonify({'error': f'Invalid birthtime format, expected HH:MM: {e}'}), 400
+
     payload = {
-        'date': formatted_date,
-        'time': birthtime,
-        'location': location,
+        'subject': {
+            'name': 'Chart Subject',
+            'birth_data': {
+                'year': dt.year,
+                'month': dt.month,
+                'day': dt.day,
+                'hour': hour,
+                'minute': minute,
+                'city': city,
+                'country_code': country_code,
+            },
+        },
+        'options': {'language': 'en'},
+        'hd_options': {
+            'include_design_chart': False,
+            'include_channels': False,
+            'include_interpretations': True,
+        },
     }
 
     headers = {
@@ -326,7 +349,7 @@ def hd_type():
 
     try:
         resp = requests.post(
-            'https://astrology-api.io/api/v1/human-design/type',
+            'https://api.astrology-api.io/api/v3/human-design/type',
             json=payload,
             headers=headers,
             timeout=30,
